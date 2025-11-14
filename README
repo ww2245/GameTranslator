@@ -1,9 +1,13 @@
 GameTranslator/
 │
 ├─ .venv/                # 虚拟环境
+├─ config/
+│  ├─api_config.json
 ├─ logs/
 │  └─ translator.log 日志记录
 ├─ tools/
+│  ├─Tesseract-OCR
+│  ├─icon.ico
 ├─ utils/
 │  ├─ logger.py 日志模块
 │  ├─ ui_region.py 区域选择工具

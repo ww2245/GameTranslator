@@ -2,6 +2,7 @@
 import json
 import random
 import hashlib
+import sys
 import time
 import hmac
 import base64
@@ -11,13 +12,19 @@ from pathlib import Path
 import requests
 from utils.logger import logger
 
-config_path = Path.cwd() / "config/api_config.json"
+
+# 获取配置文件路径（源码运行 / 打包运行 均可）
+def get_config_path():
+    return (Path(sys.executable).parent if getattr(sys, "frozen", False)
+            else Path.cwd()) / "config" / "api_config.json"
 
 
+config_path = get_config_path()
+
+
+# 每次调用重新读取 JSON（实时生效）
 def load_config():
-    """每次调用都重新读取 JSON 配置，保证配置实时生效"""
-    with open(config_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    return json.load(config_path.open("r", encoding="utf-8"))
 
 
 def baidu_translate(text, from_lang="en", to_lang="zh", appid=None, secret=None):
