@@ -1,0 +1,15 @@
+GameTranslator/
+│
+├─ .venv/                # 虚拟环境
+├─ logs/
+│  └─ translator.log 日志记录
+├─ tools/
+├─ utils/
+│  ├─ logger.py 日志模块
+│  ├─ ui_region.py 区域选择工具
+│  ├─ ui_transparent.py 悬浮透明翻译窗口
+│  ├─ utils_corestep.py 安全的截图翻译流程
+│  ├─ utils_ocr.py 图片转文字
+│  └─ utils_translate.py API 翻译文本
+├─ main.py
+└─ readme

@@ -1,0 +1,38 @@
+{
+  "_comment": "翻译接口配置文件，engine 为默认使用的翻译引擎\"baidu\", \"google\", \"youdao\", \"tencent\", \"deepl\", \"papago\"" ,
+  "engine": "baidu",
+
+  "baidu_translate": {
+    "_comment": "百度翻译 APPID 和 SECRET",
+    "appid": "百度翻译 APPID",
+    "secret": "百度翻译 Secret"
+  },
+
+  "google_translate": {
+    "_comment": "Google 翻译 API Key",
+    "api_key": "你的Google_API_KEY"
+  },
+
+  "youdao_translate": {
+    "_comment": "有道翻译 APP_KEY 和 APP_SECRET",
+    "app_key": "你的有道APP_KEY",
+    "app_secret": "你的有道APP_SECRET"
+  },
+
+  "tencent_translate": {
+    "_comment": "腾讯翻译 SecretId 和 SecretKey",
+    "secret_id": "你的SecretId",
+    "secret_key": "你的SecretKey"
+  },
+
+  "deepl_translate": {
+    "_comment": "DeepL 翻译 API Key",
+    "api_key": "你的DEEPL_KEY"
+  },
+
+  "papago_translate": {
+    "_comment": "Papago 翻译 ClientID 和 ClientSecret",
+    "client_id": "你的ClientID",
+    "client_secret": "你的ClientSecret"
+  }
+}
