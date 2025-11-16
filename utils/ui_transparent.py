@@ -8,6 +8,7 @@ class TransparentTranslator:
     悬浮透明翻译窗口
     可以在指定坐标显示翻译文本，支持拖动和双击关闭
     """
+
     def __init__(self, parent, x=100, y=100, width=400):
 
         self.root = tk.Toplevel(parent)  # 避免阻塞主循环
@@ -109,10 +110,14 @@ class TransparentTranslator:
                 lines.append(' '.join(current_line).strip())
             return lines
 
-        paragraphs = [p.strip() for p in text.split('\n') if p.strip()]
         final_lines = []
-        for para in paragraphs:
-            final_lines.extend(split_text(para, max_width - 20))
+        for para in (p.strip() for p in text.split('\n') if p.strip()):
+            lines = split_text(para, max_width - 20)
+            if lines:
+                lines[0] = "　　" + lines[0]  # 首行缩进（全角空格×2）
+                final_lines.extend(lines)
+                final_lines.append("")  # 段间距：自动空一行
+        final_lines and final_lines.pop()  # 去掉最后多出的空段
 
         wrapped_text = '\n'.join(final_lines)
         line_height = temp_font.metrics("linespace")
