@@ -2,7 +2,7 @@ GameTranslator/
 │
 ├─ .venv/                # 虚拟环境
 ├─ config/
-│  ├─api_config.json
+│  ├─api_config.json 配置文件
 ├─ logs/
 │  └─ translator.log 日志记录
 ├─ tools/

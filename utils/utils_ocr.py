@@ -1,6 +1,8 @@
 # utils_ocr.py
 import os
-from PIL import ImageGrab
+import cv2
+import numpy as np
+from PIL import ImageGrab, Image
 import pytesseract
 from utils.logger import logger
 
@@ -27,6 +29,34 @@ def setup_tesseract(tesseract_dir='tools/Tesseract-OCR'):
     logger.info(f"Tesseract 设置成功: {tesseract_path}")
 
 
+def preprocess_image(pil_image):
+    # PIL → OpenCV 格式
+    img = np.array(pil_image)
+
+    # 转灰度
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # 自适应二值化（适合复杂背景）
+    binary = cv2.adaptiveThreshold(
+        gray,
+        255,
+        cv2.ADAPTIVE_THRESH_MEAN_C,
+        cv2.THRESH_BINARY,
+        31,
+        11
+    )
+
+    # 去噪
+    denoised = cv2.fastNlMeansDenoising(binary, None, 30, 7, 21)
+
+    # 适当加粗文字（提高 Tesseract 识别率）
+    kernel = np.ones((2, 2), np.uint8)
+    dilated = cv2.dilate(denoised, kernel, iterations=1)
+
+    # 转回 PIL 用于 pytesseract
+    return Image.fromarray(dilated)
+
+
 def ocr_image(bbox):
     """
     对指定区域截图并 OCR 识别
@@ -38,8 +68,9 @@ def ocr_image(bbox):
             raise RuntimeError("Tesseract 未正确安装")
 
         img = ImageGrab.grab(bbox=bbox)
+        processed_img = preprocess_image(img)
         text = pytesseract.image_to_string(
-            img,
+            processed_img,
             lang='chi_sim+eng',
             config='--psm 6 --oem 3'
         )
