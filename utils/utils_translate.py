@@ -15,8 +15,10 @@ from utils.logger import logger
 
 # 获取配置文件路径（源码运行 / 打包运行 均可）
 def get_config_path():
-    return (Path(sys.executable).parent if getattr(sys, "frozen", False)
-            else Path.cwd()) / "config" / "api_config.json"
+    # 如果打包成 exe，使用 sys.executable
+    # 否则使用当前文件所在目录向上找项目根
+    base = Path(sys.executable).parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent.parent
+    return base.joinpath("config").joinpath("api_config.json")
 
 
 config_path = get_config_path()
