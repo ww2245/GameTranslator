@@ -4,84 +4,74 @@ import cv2
 import numpy as np
 from PIL import ImageGrab, Image
 import pytesseract
+import paddle
+from paddleocr import PaddleOCR
 from utils.logger import logger
 
+# PaddleOCR 初始化
+paddle.set_device('cpu')  # CPU，如需 GPU 改为 'gpu:0'
 
-def setup_tesseract(tesseract_dir='tools/Tesseract-OCR'):
-    """
-    设置 tesseract 路径
-    tesseract_dir: 相对项目根目录的 Tesseract-OCR 文件夹路径
-    """
-    # 获取项目根目录，而不是当前文件目录
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    tesseract_path = os.path.join(base_dir, tesseract_dir, 'tesseract.exe')
+ocr_engine = PaddleOCR(
 
-    if not os.path.exists(tesseract_path):
-        raise FileNotFoundError(
-            f"Tesseract 未找到，请确保路径存在: {tesseract_path}\n"
-            "解决方案：\n"
-            "1. 将 Tesseract-OCR 文件夹放在项目 tools 目录下\n"
-            "2. 或修改 tesseract_dir 变量指向正确位置"
-        )
-
-    import pytesseract
-    pytesseract.pytesseract.tesseract_cmd = tesseract_path
-    logger.info(f"Tesseract 设置成功: {tesseract_path}")
+    use_doc_orientation_classify=False,
+    use_doc_unwarping=False,
+    use_textline_orientation=False)  # 文本检测+文本识别
 
 
-def preprocess_image(pil_image):
-    # PIL → OpenCV 格式
-    img = np.array(pil_image)
+# 图像预处理
+def preprocess_image(pil_image: Image.Image, upscale: int = 2) -> np.ndarray:
+    """PIL Image → BGR numpy array，自动放大，轻度去噪"""
+    img_np = np.array(pil_image)
 
-    # 转灰度
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # 转换到 BGR
+    if img_np.ndim == 2:
+        img_np = cv2.cvtColor(img_np, cv2.COLOR_GRAY2BGR)
+    elif img_np.shape[2] == 4:
+        img_np = cv2.cvtColor(img_np, cv2.COLOR_BGRA2BGR)
+    else:
+        img_np = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
 
-    # 自适应二值化（适合复杂背景）
-    binary = cv2.adaptiveThreshold(
-        gray,
-        255,
-        cv2.ADAPTIVE_THRESH_MEAN_C,
-        cv2.THRESH_BINARY,
-        31,
-        11
-    )
+    # 放大
+    h, w = img_np.shape[:2]
+    img_np = cv2.resize(img_np, (w * upscale, h * upscale), interpolation=cv2.INTER_CUBIC)
 
-    # 去噪
-    denoised = cv2.fastNlMeansDenoising(binary, None, 30, 7, 21)
+    # 灰度 + 去噪（不做膨胀或二值化，保留小文字细节）
+    gray = cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY)
+    denoised = cv2.fastNlMeansDenoising(gray, None, 20, 7, 21)
+    final_img = cv2.cvtColor(denoised, cv2.COLOR_GRAY2BGR)
 
-    # 适当加粗文字（提高 Tesseract 识别率）
-    kernel = np.ones((2, 2), np.uint8)
-    dilated = cv2.dilate(denoised, kernel, iterations=1)
-
-    # 转回 PIL 用于 pytesseract
-    return Image.fromarray(dilated)
+    return final_img
 
 
-def ocr_image(bbox):
+# OCR 核心函数
+def ocr_image(bbox: tuple, use_paddle=True) -> str:
     """
     对指定区域截图并 OCR 识别
     bbox: (x1, y1, x2, y2)
-    返回识别出的文本（中英文混合）
+    use_paddle: True 使用 PaddleOCR, False 使用 Tesseract
+    返回识别出的文本
     """
     try:
-        if not hasattr(pytesseract, 'get_tesseract_version'):
-            raise RuntimeError("Tesseract 未正确安装")
-
         img = ImageGrab.grab(bbox=bbox)
-        processed_img = preprocess_image(img)
-        text = pytesseract.image_to_string(
-            processed_img,
-            lang='chi_sim+eng',
-            config='--psm 6 --oem 3'
-        )
-        text = ' '.join(text.splitlines())
+        if use_paddle:
+            img_np = preprocess_image(img, upscale=3)  # 小图像放大 3 倍
+            result = ocr_engine.predict(img_np)
+            text = ' '.join(text for item in result for text in item['rec_texts'])
+        else:
+            img_np = preprocess_image(img)
+            text = pytesseract.image_to_string(
+                img_np,
+                lang='chi_sim+eng',
+                config='--psm 6 --oem 3'
+            )
+            text = ' '.join(text.splitlines())
         if not text.strip():
             logger.warning("OCR 未识别到有效文本")
             return "OCR 未识别到有效文本"
 
-        logger.debug(f"OCR识别结果: {text}")
+        logger.info(f"OCR识别结果: {text}")
         return text
 
-    except Exception as e:
+    except Exception:
         logger.error("OCR 识别失败", exc_info=True)
         return "OCR 识别失败"
